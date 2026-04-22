@@ -11,7 +11,32 @@
   <h1>MINI GTA</h1>
   <p>Choose Your Character</p>
   <div id="charGrid"></div>
-  <button id="startBtn">START GAME</button>
+  <div id="selectButtons">
+    <button id="startBtn">START GAME</button>
+    <button id="leaderboardBtn">🏆 LEADERBOARD</button>
+  </div>
+</div>
+
+<!-- Leaderboard screen -->
+<div id="leaderboardScreen">
+  <h1>🏆 HALL OF FAME 🏆</h1>
+  <div id="leaderboardList"></div>
+  <div id="leaderboardButtons">
+    <button id="closeLeaderboardBtn">BACK</button>
+    <button id="clearLeaderboardBtn">CLEAR ALL</button>
+  </div>
+</div>
+
+<!-- Score submission dialog -->
+<div id="scoreSubmit">
+  <h2>🎯 NEW SCORE!</h2>
+  <div id="scoreStats"></div>
+  <div id="scoreRank"></div>
+  <input type="text" id="playerName" placeholder="Enter your name" maxlength="15" autocomplete="off">
+  <div id="scoreSubmitButtons">
+    <button id="submitScoreBtn">SUBMIT</button>
+    <button id="skipScoreBtn">SKIP</button>
+  </div>
 </div>
 
 <div id="hud">
@@ -19,6 +44,7 @@
   <div>💰 Money: $<span id="money">0</span></div>
   <div>⭐ Wanted: <span id="wanted">☆☆☆☆☆</span></div>
   <div>🔫 Ammo: <span id="ammo">50</span></div>
+  <div>🎯 Score: <span id="score">0</span></div>
   <div id="vehStatus">🚶 On foot</div>
 </div>
 
@@ -28,10 +54,10 @@
 
 <div id="gameOver">
   <div>💀 WASTED 💀</div>
-  <button onclick="location.reload()">Try Again</button>
+  <div id="gameOverScore"></div>
+  <button id="tryAgainBtn">Try Again</button>
 </div>
 
-<!-- Cheat code input (hidden by default) -->
 <div id="cheatBox">
   <div id="cheatLabel">🤫 Enter Cheat:</div>
   <input type="text" id="cheatInput" autocomplete="off" spellcheck="false">
@@ -40,8 +66,8 @@
 
 <canvas id="game"></canvas>
 
-<!-- Load scripts: characters.js is kept separate so your image config survives game updates -->
 <script src="characters.js"></script>
+<script src="leaderboard.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
