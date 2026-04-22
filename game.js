@@ -29,7 +29,6 @@ CHARACTERS.forEach((char, i) => {
   charGrid.appendChild(card);
 });
 
-// Preload images
 const loadedImages = {};
 CHARACTERS.forEach((char, i) => {
   if (!char.src.startsWith('Placeholder')) {
@@ -46,10 +45,6 @@ startBtn.addEventListener('click', () => {
 });
 
 // ===== CHEAT CODE SYSTEM =====
-// Activation: Ctrl + Shift + C (not a default browser shortcut in most browsers)
-// Cheats:
-//   "wanker" -> +$100
-//   "twat"   -> +$1000
 const cheatBox = document.getElementById('cheatBox');
 const cheatInput = document.getElementById('cheatInput');
 const cheatMsg = document.getElementById('cheatMsg');
@@ -75,6 +70,7 @@ function applyCheat(code) {
   const cheat = CHEATS[code.toLowerCase().trim()];
   if (cheat) {
     player.money += cheat.money;
+    player.cheatsUsed = true; // mark as tainted for leaderboard
     cheatMsg.style.color = '#0f0';
     cheatMsg.textContent = cheat.msg;
     setTimeout(closeCheatBox, 1200);
@@ -84,7 +80,6 @@ function applyCheat(code) {
   }
 }
 
-// Ctrl+Shift+C toggles the cheat box
 document.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
     e.preventDefault();
@@ -94,14 +89,12 @@ document.addEventListener('keydown', (e) => {
       openCheatBox();
     }
   }
-  // ESC to close
   if (e.key === 'Escape' && cheatBox.style.display === 'block') {
     closeCheatBox();
   }
 });
 
 cheatInput.addEventListener('keydown', (e) => {
-  // Prevent game keys from firing while typing in the cheat box
   e.stopPropagation();
   if (e.key === 'Enter') {
     applyCheat(cheatInput.value);
@@ -120,7 +113,6 @@ const WORLD = 4000;
 const keys = {};
 const mouse = { x: 0, y: 0, worldX: 0, worldY: 0, down: false };
 
-// Only listen for game keys when cheat box is closed
 addEventListener('keydown', e => {
   if (cheatBox.style.display === 'block') return;
   keys[e.key.toLowerCase()] = true;
@@ -197,7 +189,11 @@ function findSafeSpot(x, y, r) {
 const player = {
   x: 400, y: 400, r: 12, angle: 0,
   health: 100, money: 0, ammo: 50, inVehicle: null,
-  color: '#4af', shootCooldown: 0, charIndex: 0
+  color: '#4af', shootCooldown: 0, charIndex: 0,
+  // Stats for leaderboard
+  kills: 0,
+  maxWanted: 0,
+  cheatsUsed: false
 };
 
 const vehicles = [];
@@ -287,6 +283,9 @@ function tryEnterExit() {
 
 function addWanted(amount) {
   wanted = Math.min(5, wanted + amount);
+  if (Math.floor(wanted) > player.maxWanted) {
+    player.maxWanted = Math.floor(wanted);
+  }
 }
 
 function shoot(fromX, fromY, angle, owner, damage = 20, speed = 15) {
@@ -310,12 +309,21 @@ function addParticles(x, y, color, count = 10) {
   }
 }
 
+// Calculate score
+function calculateScore() {
+  return Math.floor(player.money + (player.kills * 50) + (player.maxWanted * 200));
+}
+
 let gameStarted = false;
+let gameOver = false;
 let lastWantedSpawn = 0;
 
 function startGame(charIndex) {
   player.charIndex = charIndex;
   player.color = CHARACTERS[charIndex].color;
+  player.kills = 0;
+  player.maxWanted = 0;
+  player.cheatsUsed = false;
 
   npcCharIndexes = [];
   for (let i = 0; i < CHARACTERS.length; i++) {
@@ -347,8 +355,90 @@ function startGame(charIndex) {
   player.y = safe.y;
 
   gameStarted = true;
+  gameOver = false;
   loop();
 }
+
+// === GAME OVER / SCORE SUBMISSION ===
+function handleGameOver() {
+  if (gameOver) return;
+  gameOver = true;
+  
+  const score = calculateScore();
+  const gameOverDiv = document.getElementById('gameOver');
+  const scoreStats = document.getElementById('gameOverScore');
+  
+  scoreStats.innerHTML = `
+    <div>🎯 Score: ${score.toLocaleString()}</div>
+    <div style="font-size:14px;margin-top:10px;">
+      💰 $${player.money.toLocaleString()} · 💀 ${player.kills} kills · ⭐ ${player.maxWanted} stars
+    </div>
+    ${player.cheatsUsed ? '<div style="color:#f55;font-size:12px;margin-top:8px;">⚠️ Cheats used — not eligible for leaderboard</div>' : ''}
+  `;
+  
+  gameOverDiv.style.display = 'block';
+  
+  // Show score submission if qualified AND no cheats used
+  if (!player.cheatsUsed && Leaderboard.qualifies(score) && score > 0) {
+    setTimeout(() => {
+      showScoreSubmit(score);
+    }, 800);
+  }
+}
+
+function showScoreSubmit(score) {
+  const dialog = document.getElementById('scoreSubmit');
+  const stats = document.getElementById('scoreStats');
+  const rankDiv = document.getElementById('scoreRank');
+  const nameInput = document.getElementById('playerName');
+  
+  const rank = Leaderboard.projectedRank(score);
+  
+  stats.innerHTML = `
+    <div>🎯 Final Score: <b style="color:#ffd700">${score.toLocaleString()}</b></div>
+    <div>💰 Money: $${player.money.toLocaleString()}</div>
+    <div>💀 Kills: ${player.kills}</div>
+    <div>⭐ Max Wanted: ${player.maxWanted}</div>
+  `;
+  
+  rankDiv.textContent = rank === 1 ? '🥇 NEW #1 HIGH SCORE!' :
+                        rank === 2 ? '🥈 #2 on the leaderboard!' :
+                        rank === 3 ? '🥉 #3 on the leaderboard!' :
+                        `Rank #${rank} on the leaderboard`;
+  
+  nameInput.value = '';
+  dialog.style.display = 'block';
+  nameInput.focus();
+}
+
+function hideScoreSubmit() {
+  document.getElementById('scoreSubmit').style.display = 'none';
+}
+
+document.getElementById('submitScoreBtn').addEventListener('click', () => {
+  const name = document.getElementById('playerName').value.trim() || 'ANON';
+  Leaderboard.addScore({
+    name: name,
+    score: calculateScore(),
+    money: player.money,
+    kills: player.kills,
+    maxWanted: player.maxWanted,
+    character: CHARACTERS[player.charIndex].name
+  });
+  hideScoreSubmit();
+  showLeaderboard();
+});
+
+document.getElementById('skipScoreBtn').addEventListener('click', hideScoreSubmit);
+
+document.getElementById('playerName').addEventListener('keydown', (e) => {
+  e.stopPropagation();
+  if (e.key === 'Enter') {
+    document.getElementById('submitScoreBtn').click();
+  }
+});
+
+document.getElementById('tryAgainBtn').addEventListener('click', () => location.reload());
 
 function update() {
   mouse.worldX = mouse.x + cam.x;
@@ -386,6 +476,7 @@ function update() {
         addParticles(p.x, p.y, '#a00', 15);
         if (p.health <= 0 && !p.dead) {
           p.dead = true;
+          player.kills++;
           pickups.push({ x: p.x, y: p.y, amount: p.money, type: 'money' });
           addWanted(1);
         }
@@ -396,7 +487,10 @@ function update() {
       if (!c.dead && dist(v, c) < 20 && Math.abs(v.speed) > 2) {
         c.health -= Math.abs(v.speed) * 5;
         addParticles(c.x, c.y, '#a00', 15);
-        if (c.health <= 0) c.dead = true;
+        if (c.health <= 0) {
+          c.dead = true;
+          player.kills++;
+        }
       }
     }
 
@@ -484,6 +578,7 @@ function update() {
           addParticles(b.x, b.y, '#a00', 8);
           if (p.health <= 0) {
             p.dead = true;
+            player.kills++;
             pickups.push({ x: p.x, y: p.y, amount: p.money, type: 'money' });
             addWanted(1);
           }
@@ -499,6 +594,7 @@ function update() {
           addParticles(b.x, b.y, '#a00', 8);
           if (c.health <= 0) {
             c.dead = true;
+            player.kills++;
             addWanted(1);
           }
           hit = true;
@@ -603,13 +699,14 @@ function update() {
   if (player.ammo < 10) player.ammo += 0.05;
 
   if (player.health <= 0) {
-    document.getElementById('gameOver').style.display = 'block';
+    handleGameOver();
   }
 
   document.getElementById('health').textContent = Math.max(0, Math.floor(player.health));
   document.getElementById('money').textContent = player.money;
   document.getElementById('ammo').textContent = Math.floor(player.ammo);
   document.getElementById('wanted').textContent = '★'.repeat(Math.floor(wanted)) + '☆'.repeat(5 - Math.floor(wanted));
+  document.getElementById('score').textContent = calculateScore().toLocaleString();
   document.getElementById('vehStatus').textContent = player.inVehicle ? `🚗 In vehicle (HP: ${Math.max(0,Math.floor(player.inVehicle.health))})` : '🚶 On foot';
 }
 
@@ -770,7 +867,6 @@ function render() {
 
   ctx.restore();
 
-  // Minimap
   const mapSize = 150;
   const mapX = W - mapSize - 10;
   const mapY = 10;
