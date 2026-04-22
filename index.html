@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini GTA</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="characterSelect">
+  <h1>MINI GTA</h1>
+  <p>Choose Your Character</p>
+  <div id="charGrid"></div>
+  <button id="startBtn">START GAME</button>
+</div>
+
+<div id="hud">
+  <div>❤️ Health: <span id="health">100</span></div>
+  <div>💰 Money: $<span id="money">0</span></div>
+  <div>⭐ Wanted: <span id="wanted">☆☆☆☆☆</span></div>
+  <div>🔫 Ammo: <span id="ammo">50</span></div>
+  <div id="vehStatus">🚶 On foot</div>
+</div>
+
+<div id="info">
+  WASD/Arrows: Move/Drive | Mouse: Aim | Click: Shoot | E: Enter/Exit vehicle | Shift: Run
+</div>
+
+<div id="gameOver">
+  <div>💀 WASTED 💀</div>
+  <button onclick="location.reload()">Try Again</button>
+</div>
+
+<!-- Cheat code input (hidden by default) -->
+<div id="cheatBox">
+  <div id="cheatLabel">🤫 Enter Cheat:</div>
+  <input type="text" id="cheatInput" autocomplete="off" spellcheck="false">
+  <div id="cheatMsg"></div>
+</div>
+
+<canvas id="game"></canvas>
+
+<!-- Load scripts: characters.js is kept separate so your image config survives game updates -->
+<script src="characters.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
